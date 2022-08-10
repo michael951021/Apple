@@ -12,7 +12,6 @@ let movement = [0,0];
 let setup = false
 let snake_movement = [0,0];
 var body = [sx,sy,sx-20,sy];
-
 let visited = []
 let grid = []
 let optimal = []
@@ -93,8 +92,13 @@ function snakeai() {
     // }
     let m1 = [0,-20,0,20,0]
     let m2 = [0,0,-20,0,20]
-    snake_movement[0] = m1[optimal[body[1]/20][body[0]/20]]
-    snake_movement[1] = m2[optimal[body[1]/20][body[0]/20]]
+    // there's a problem here but idk what it is ;( ....
+    if (snake_movement[0] == 0 || snake_movement[0] != -1 * m1[optimal[body[1]/20][body[0]/20]]) {
+        snake_movement[0] = m1[optimal[body[1]/20][body[0]/20]]
+    }
+    if (snake_movement[1] == 0 || snake_movement[1] != -1 * m2[optimal[body[1]/20][body[0]/20]]) {
+        snake_movement[1] = m2[optimal[body[1]/20][body[0]/20]]
+    }
 }
 function check_end() {
     // 0 nothing
@@ -104,7 +108,7 @@ function check_end() {
         return -1
     }
     for (let i = 2; i < body.length; i+=2) {
-        if (body[0] == body[i] && body[1] == body[i+1]) {
+        if (body[0] == body[i] && body[1] == body[i+1] && body[body.length-2] != sx && body[body.length-1] != sy) {
             return 1;
         }
     }
@@ -122,8 +126,12 @@ function snakemove() {
     for (let i = body.length-1; i > 1; i-=1) {
         body[i] = body[i-2];
     }
-    body[0] = body[0] + snake_movement[0]
-    body[1] = body[1] + snake_movement[1]
+    if (body[0] + snake_movement[0] >= 0 || body[0] + snake_movement[0] < canvas.width/20) {
+        body[0] = body[0] + snake_movement[0]
+    }
+    if (body[1] + snake_movement[1] >= 0 || body[1] + snake_movement[1] < canvas.height/20) {
+        body[1] = body[1] + snake_movement[1]
+    }
 }
 function snake() {
     if (count % 5 == 0) {
@@ -233,6 +241,7 @@ function search() {
         x = queue.shift()
         y = queue.shift()
         if (x == body[0]/20 && y == body[1]/20) {
+            optimal[body[1]/20][body[0]/20] = 1
             break
         }
         /*
@@ -266,7 +275,7 @@ function search() {
             optimal[y+1][x] = 2
         }
     }
-    document.getElementById("win").innerHTML = optimal[body[1]/20][body[0]/20] + " " + gameval
+    document.getElementById("win").innerHTML = optimal[body[1]/20][body[0]/20] + " " + gameval + " " + invinc + " " + count
 
 }
 function draw() {
@@ -278,6 +287,8 @@ function draw() {
         }
     }
     if (gameval == -1 && setup == false) {
+        count = 0
+        invinc = 0
         setup = true
         updategrid()
         search()
@@ -318,6 +329,22 @@ function draw() {
     turbo();
     harden();
     gameval = check_end()
+    if (gameval == 1 && count > 50) {
+        document.getElementById("myCanvas").style.display = "none"
+    }
+    if (gameval == 2 && count > invinc) {
+        if (hard == false) {
+            gameval = -1
+            setup = false
+            movement[0] = 0
+            movement[1] = 0
+        } else {
+            hard = false
+        }
+        invinc = count + 50
+        body.push(sx)
+        body.push(sy)
+    }
 
 }
 
