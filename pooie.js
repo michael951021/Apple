@@ -13,13 +13,18 @@ let setup = false
 let snake_movement = [0,0];
 var body = [sx,sy,sx-20,sy];
 
+let visited = []
 let grid = []
+let optimal = []
 for (let i = 0; i < parseInt(canvas.height/20); i++) {
     let temp = []
+    let temp2 = []
     for (let j = 0; j < parseInt(canvas.width/20); j++) {
         temp.push(0)
+        temp2.push(0)
     }
     grid.push(temp)
+    optimal.push(temp2)
 }
 
 let gameval = -1
@@ -53,39 +58,43 @@ document.addEventListener("keydown",function(event) {
     }
 })
 function snakeai() {
-    if ((snake_behind && body[0] >= ax) || (!snake_behind&& body[0] <= ax)) {
-        xmode = false
-    }
-    else if ((snake_ontop && body[1] >= ay) || (!snake_ontop && body[1] <= ay)) {
-        xmode = true
-    }
-    if (body[0] < ax) {
-        snake_behind = true
-    } else {
-        snake_behind = false
-    }
-    if (body[1] < ax) {
-        snake_ontop = true
-    } else {
-        snake_ontop = false
-    }
-    if (xmode) {
-        snake_movement[1] = 0
-        if (ax > body[0]) {
-            snake_movement[0] = 20
-        }
-        if (ax < body[0]) {
-            snake_movement[0] = -20
-        }
-    } else {
-        snake_movement[0] = 0
-        if (ay > body[1]) {
-            snake_movement[1] = 20
-        }
-        if (ay < body[1]) {
-            snake_movement[1] = -20
-        }
-    }
+    // if ((snake_behind && body[0] >= ax) || (!snake_behind&& body[0] <= ax)) {
+    //     xmode = false
+    // }
+    // else if ((snake_ontop && body[1] >= ay) || (!snake_ontop && body[1] <= ay)) {
+    //     xmode = true
+    // }
+    // if (body[0] < ax) {
+    //     snake_behind = true
+    // } else {
+    //     snake_behind = false
+    // }
+    // if (body[1] < ax) {
+    //     snake_ontop = true
+    // } else {
+    //     snake_ontop = false
+    // }
+    // if (xmode) {
+    //     snake_movement[1] = 0
+    //     if (ax > body[0]) {
+    //         snake_movement[0] = 20
+    //     }
+    //     if (ax < body[0]) {
+    //         snake_movement[0] = -20
+    //     }
+    // } else {
+    //     snake_movement[0] = 0
+    //     if (ay > body[1]) {
+    //         snake_movement[1] = 20
+    //     }
+    //     if (ay < body[1]) {
+    //         snake_movement[1] = -20
+    //     }
+    // }
+    let m1 = [0,-20,0,20,0]
+    let m2 = [0,0,-20,0,20]
+    snake_movement[0] = m1[optimal[body[1]/20][body[0]/20]]
+    snake_movement[1] = m2[optimal[body[1]/20][body[0]/20]]
 }
 function check_end() {
     // 0 nothing
@@ -122,7 +131,13 @@ function snake() {
         snakemove()
     }
     ctx.beginPath();
-    for (let i = 0; i < body.length; i+=2) {
+    ctx.rect(body[0],body[1],20,20)
+    ctx.closePath()
+    ctx.fillStyle = "black"
+    ctx.fill();
+
+    ctx.beginPath()
+    for (let i = 2; i < body.length; i+=2) {
         ctx.rect(body[i],body[i+1],20,20);
     }
     ctx.closePath();
@@ -197,6 +212,63 @@ function updategrid() {
         grid[body[i+1]/20][body[i]/20] = 2
     }
 }
+function search() {
+    visited = []
+    for (let i = 0; i < parseInt(canvas.height/20); i++) {
+        let temp = []
+        for (let j = 0; j < parseInt(canvas.width/20); j++) {
+            if (grid[i][j] == 2) {
+                temp.push(1)
+            } else {
+                temp.push(0)
+            }
+        }
+        visited.push(temp)
+    }
+    queue = []
+    queue.push(ax/20)
+    queue.push(ay/20)
+    visited[ay/20][ax/20] = 1
+    while (queue.length > 0) {
+        x = queue.shift()
+        y = queue.shift()
+        if (x == body[0]/20 && y == body[1]/20) {
+            break
+        }
+        /*
+                 2
+               1-X-3
+                 4
+         */
+        if (x-1 >= 0 && visited[y][x-1] == 0) {
+            // Check Left - 1
+            queue.push(x-1)
+            queue.push(y)
+            visited[y][x-1] = 1
+            optimal[y][x-1] = 3
+        }if (y-1 >= 0 && visited[y-1][x] == 0) {
+            // Check Up - 2
+            queue.push(x)
+            queue.push(y-1)
+            visited[y-1][x] = 1
+            optimal[y-1][x] = 4
+        }if (x+1 < grid[0].length && visited[y][x+1] == 0) {
+            // Check Right 3
+            queue.push(x+1)
+            queue.push(y)
+            visited[y][x+1] = 1
+            optimal[y][x+1] = 1
+        }if (y+1 < grid.length && visited[y+1][x] == 0) {
+            // Check Down 4
+            queue.push(x)
+            queue.push(y+1)
+            visited[y+1][x] = 1
+            optimal[y+1][x] = 2
+        }
+    }
+    document.getElementById("win").innerHTML = optimal[body[1]/20][body[0]/20] + " " + gameval
+
+}
 function draw() {
     count += 1
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -207,6 +279,8 @@ function draw() {
     }
     if (gameval == -1 && setup == false) {
         setup = true
+        updategrid()
+        search()
         ax = (parseInt(Math.random()*100) % 70) * 20
         ay = (parseInt(Math.random()*100) % 39) * 20
         sx = (parseInt(Math.random()*100) % 70) * 20
@@ -238,13 +312,13 @@ function draw() {
         body.push(sy)
     }
     updategrid()
-
+    search()
     snake();
     apple();
     turbo();
     harden();
     gameval = check_end()
-    document.getElementById("win").innerHTML = gameval + " " + count
+
 }
 
 draw()
